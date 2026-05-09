@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  username          String   @unique
+  password          String
+  role              String   @default("SEKOLAH") // ADMIN or SEKOLAH
+  name              String
+  jenjang           String?  // TK, PAUD, SD
+  npsn              String?
+  mustChangePassword Boolean @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model School {
+  id              String   @id @default(cuid())
+  npsn            String   @unique
+  nama            String
+  jenjang         String   // TK, PAUD, SD
+  alamat          String
+  kecamatan       String
+  desa            String
+  kepalaSekolah   String
+  status          String   @default("Aktif") // Aktif / Nonaktif
+  noHp            String?
+  email           String?
+  tahunBerdiri    String?
+  akreditasi      String?
+  logoUrl         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Laporan {
+  id              String   @id @default(cuid())
+  schoolId        String
+  npsn            String
+  namaSekolah     String
+  jenjang         String
+  bulan           Int      // 1-12
+  tahun           Int      // 2025, 2026, etc.
+  // Checklist Administrasi (6 items)
+  dataSekolahUpdate   Boolean @default(false)
+  dataGuruUpdate      Boolean @default(false)
+  dataSiswaUpdate     Boolean @default(false)
+  jadwalTersedia      Boolean @default(false)
+  absensiTersedia     Boolean @default(false)
+  arsipTertata        Boolean @default(false)
+  // Sarana & Prasarana
+  kondisiRuangKelas   String  @default("Baik") // Baik, Rusak Ringan, Rusak Berat
+  airBersih           Boolean @default(false)
+  toiletLayak         Boolean @default(false)
+  kebutuhanMendesak   String?
+  // Data Singkat Bulanan
+  jumlahGuru          Int     @default(0)
+  jumlahSiswa         Int     @default(0)
+  jumlahRombel        Int     @default(0)
+  // Dokumentasi
+  fotoUrl             String?
+  fileUrl             String?
+  // Catatan
+  kendala             String?
+  keterangan          String?
+  // Auto calculated
+  persentase          Float   @default(0)
+  // Metadata
+  status              String  @default("Draft") // Draft, Submitted
+  submittedAt         DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([schoolId, bulan, tahun])
+}
+
+model Pendaftar {
+  id              String   @id @default(cuid())
+  schoolId        String
+  npsn            String
+  namaSekolah     String
+  namaSiswa       String
+  nisn            String?
+  tanggalLahir    String   // YYYY-MM-DD
+  jenisKelamin    String   // L, P
+  asalSekolah     String   // PAUD, TK, RA, Lainnya
+  statusUsia      String   @default("Diterima") // Diterima, Batas, Ditolak
+  noUrut          Int      @default(0)
+  catatan         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model KuotaSekolah {
+  id              String   @id @default(cuid())
+  schoolId        String   @unique
+  npsn            String   @unique
+  namaSekolah     String
+  rombel          Int      @default(1)
+  kuota           Int      @default(40) // rombel * 40
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
