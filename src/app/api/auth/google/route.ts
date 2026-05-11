@@ -119,10 +119,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Google login error:', error)
     const msg = error instanceof Error ? error.message : 'Unknown error'
-    const envVal = process.env.FIREBASE_SERVICE_ACCOUNT
-    const preview = envVal ? envVal.substring(0, 80) : '(empty)'
     return NextResponse.json(
-      { success: false, message: msg, envPreview: preview },
+      { success: false, message: msg },
       { status: 500 }
     )
   }
