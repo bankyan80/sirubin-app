@@ -9,11 +9,6 @@ export async function GET(request: NextRequest) {
 
     const user = auth.user
 
-    // SEKOLAH role can only access their own school
-    if (user.role !== 'SEKOLAH') {
-      return NextResponse.json({ success: false, message: 'Akses ditolak' }, { status: 403 })
-    }
-
     if (!user.npsn) {
       return NextResponse.json({ success: false, message: 'Akun belum terhubung ke data sekolah' }, { status: 400 })
     }
@@ -36,11 +31,6 @@ export async function PUT(request: NextRequest) {
     if (!auth.authenticated) return auth.response
 
     const user = auth.user
-
-    // SEKOLAH role can only update their own school
-    if (user.role !== 'SEKOLAH') {
-      return NextResponse.json({ success: false, message: 'Akses ditolak' }, { status: 403 })
-    }
 
     if (!user.npsn) {
       return NextResponse.json({ success: false, message: 'Akun belum terhubung ke data sekolah' }, { status: 400 })

@@ -118,12 +118,15 @@ export function settingsCollection() { return getFirebaseDb().collection('settin
 
 // ==================== USERS ====================
 
-export async function dbFindUser(where: { id?: string; username?: string }): Promise<Record<string, any> | null> {
+export async function dbFindUser(where: { id?: string; username?: string; email?: string }): Promise<Record<string, any> | null> {
   const col = usersCollection()
   let doc: DocumentSnapshot | null = null
 
   if (where.id) {
     doc = await col.doc(where.id).get()
+  } else if (where.email) {
+    const snapshot = await col.where('email', '==', where.email).limit(1).get()
+    if (!snapshot.empty) doc = snapshot.docs[0]
   } else if (where.username) {
     const snapshot = await col.where('username', '==', where.username).limit(1).get()
     if (!snapshot.empty) doc = snapshot.docs[0]
@@ -136,7 +139,7 @@ export async function dbFindUser(where: { id?: string; username?: string }): Pro
   return rest
 }
 
-export async function dbFindUserWithPassword(where: { id?: string; username?: string }): Promise<Record<string, any> | null> {
+export async function dbFindUserWithPassword(where: { id?: string; username?: string; email?: string }): Promise<Record<string, any> | null> {
   const col = usersCollection()
   let doc: DocumentSnapshot | null = null
 
@@ -205,6 +208,7 @@ export async function dbListUsers(params: {
   const orFields: Array<{ field: string; value: string }> = []
   if (params.search) {
     orFields.push({ field: 'name', value: params.search })
+    orFields.push({ field: 'email', value: params.search })
     orFields.push({ field: 'username', value: params.search })
     orFields.push({ field: 'npsn', value: params.search })
   }

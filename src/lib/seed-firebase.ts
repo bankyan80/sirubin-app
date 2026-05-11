@@ -1,15 +1,15 @@
 import { getFirebaseApp } from '@/lib/firebase'
-import { getFirestore, collection, getDocs, writeBatch, doc, setDoc, deleteDocs } from 'firebase-admin/firestore'
-import bcrypt from 'bcryptjs'
+import { getFirestore } from 'firebase-admin/firestore'
 
 /**
  * Firebase Seed Script
- * Run: bun run src/lib/seed-firebase.ts
+ * Run: npm run seed
  * 
  * Initializes Firebase with:
- * - 1 admin user (admin / admin456)
- * - 21 school users (username=NPSN, password=nisn.la)
+ * - 1 admin user (admin@sirubin.app)
+ * - 21 school users (npsn@sekolah.sirubin)
  * - 21 schools
+ * - Default system settings
  */
 
 const SCHOOLS = [
@@ -37,13 +37,12 @@ const SCHOOLS = [
 ]
 
 async function seed() {
-  console.log('🔥 Initializing Firebase...')
+  console.log('Initializing Firebase...')
   getFirebaseApp()
   const db = getFirestore()
 
-  console.log('🗑️  Clearing existing collections...')
+  console.log('Clearing existing collections...')
 
-  // Clear all collections
   for (const colName of ['users', 'schools', 'laporan', 'pendaftar', 'kuotaSekolah', 'settings']) {
     const snapshot = await db.collection(colName).get()
     const batch = db.batch()
@@ -54,53 +53,52 @@ async function seed() {
     console.log(`  Cleared: ${colName} (${snapshot.size} docs)`)
   }
 
-  console.log('📦 Seeding data...')
+  console.log('Seeding data...')
+
+  const now = new Date()
 
   // 1. Create admin user
-  const adminPassword = await bcrypt.hash('admin456', 10)
   await db.collection('users').add({
+    email: 'admin@sirubin.app',
     username: 'admin',
-    password: adminPassword,
     role: 'ADMIN',
     name: 'Administrator SIRUBIN',
     jenjang: null,
     npsn: null,
-    mustChangePassword: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: now,
+    updatedAt: now,
   })
-  console.log('  ✅ Admin user created (admin / admin456)')
+  console.log('  Admin user created (admin@sirubin.app)')
 
   // 2. Create schools and school users
-  const schoolPassword = await bcrypt.hash('nisn.la', 10)
   let userCount = 0
 
   for (const school of SCHOOLS) {
-    // Create school
     await db.collection('schools').add({
       ...school,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     })
 
-    // Create school user
+    const email = `${school.npsn}@sekolah.sirubin`
+
     await db.collection('users').add({
+      email,
       username: school.npsn,
-      password: schoolPassword,
       role: 'SEKOLAH',
       name: school.kepalaSekolah,
       jenjang: school.jenjang,
       npsn: school.npsn,
-      mustChangePassword: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     })
 
     userCount++
   }
 
-  console.log(`  ✅ ${SCHOOLS.length} schools created`)
-  console.log(`  ✅ ${userCount} school users created (NPSN / nisn.la)`)
+  console.log(`  ${SCHOOLS.length} schools created`)
+  console.log(`  ${userCount} school users created (${SCHOOLS[0].npsn}@sekolah.sirubin)`)
+  console.log('  Users must login with Google using the registered email')
 
   // 3. Save default settings
   await db.collection('settings').doc('system_settings').set({
@@ -110,14 +108,14 @@ async function seed() {
     persentaseMinimum: 75,
     autoReminder: true,
     reminderDaysBefore: 3,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: now,
+    updatedAt: now,
   })
-  console.log('  ✅ System settings created')
+  console.log('  System settings created')
 
-  console.log('\n🎉 Seed completed successfully!')
-  console.log('📊 Summary:')
-  console.log(`   - 1 Admin user`)
+  console.log('\nSeed completed successfully!')
+  console.log('Summary:')
+  console.log(`   - 1 Admin user (admin@sirubin.app)`)
   console.log(`   - ${SCHOOLS.length} Schools`)
   console.log(`   - ${userCount} School users`)
   console.log('   - System settings')

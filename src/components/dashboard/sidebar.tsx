@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Database,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/auth-store'
 
@@ -21,16 +22,28 @@ interface SidebarProps {
   onToggle: () => void
   mobileOpen: boolean
   onMobileClose: () => void
-  onChangePassword: () => void
 }
 
-const allMenuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'SEKOLAH'] },
-  { id: 'sekolah', label: 'Data Sekolah', icon: School, roles: ['ADMIN', 'SEKOLAH'] },
-  { id: 'laporan', label: 'Laporan Bulanan', icon: FileText, roles: ['ADMIN', 'SEKOLAH'] },
-  { id: 'rekapitulasi', label: 'Rekapitulasi', icon: BarChart3, roles: ['ADMIN'] },
-  { id: 'pengaturan', label: 'Pengaturan', icon: Settings, roles: ['ADMIN', 'SEKOLAH'] },
-  { id: 'spmb', label: 'SPMB 2026/2027', icon: GraduationCap, roles: ['ADMIN', 'SEKOLAH'] },
+const adminMenus = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'sekolah', label: 'Data Sekolah', icon: School },
+  { id: 'laporan', label: 'Laporan Bulanan', icon: FileText },
+  { id: 'rekapitulasi', label: 'Rekapitulasi', icon: BarChart3 },
+  { id: 'spmb', label: 'SPMB 2026/2027', icon: GraduationCap },
+  { id: 'pengaturan', label: 'Pengaturan', icon: Settings },
+]
+
+const sekolahMenus = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'laporan', label: 'Laporan Bulanan', icon: FileText },
+  { id: 'rekapitulasi', label: 'Rekapitulasi', icon: BarChart3 },
+  { id: 'spmb', label: 'SPMB 2026/2027', icon: GraduationCap },
+  { id: 'pengaturan', label: 'Pengaturan', icon: Settings },
+]
+
+const penggunaMenus = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'rekapitulasi', label: 'Rekapitulasi', icon: BarChart3 },
 ]
 
 export default function Sidebar({
@@ -40,18 +53,14 @@ export default function Sidebar({
   onToggle,
   mobileOpen,
   onMobileClose,
-  onChangePassword,
 }: SidebarProps) {
   const { user, isAuthenticated, logout } = useAuthStore()
 
   const isAdmin = isAuthenticated && user?.role === 'ADMIN'
-  const userRole = user?.role || ''
-
-  // Filter menu items by role
-  const menuItems = allMenuItems.filter((item) => {
-    if (!isAuthenticated) return false
-    return item.roles.includes(userRole)
-  })
+  const isPengguna = isAuthenticated && user?.role === 'PENGGUNA'
+  const menuItems = isAuthenticated
+    ? isAdmin ? adminMenus : isPengguna ? penggunaMenus : sekolahMenus
+    : []
 
   const initials = user?.name
     ? user.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
@@ -59,7 +68,11 @@ export default function Sidebar({
 
   const gradientColors = isAdmin
     ? 'from-blue-500 to-violet-500'
+    : isPengguna
+    ? 'from-slate-500 to-slate-600'
     : 'from-emerald-500 to-teal-500'
+
+  const roleLabel = isAdmin ? 'Super Admin' : isPengguna ? 'Pengguna' : (user?.jenjang || 'Sekolah')
 
   const handleLogout = () => {
     logout()
@@ -196,9 +209,17 @@ export default function Sidebar({
           <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
             {isAuthenticated && initials ? (
               <>
-                <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${gradientColors} flex items-center justify-center flex-shrink-0`}>
-                  <span className="text-white text-xs font-bold">{initials}</span>
-                </div>
+                {user?.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.name}
+                    className="w-8 h-8 rounded-full flex-shrink-0 border-2 border-white/10"
+                  />
+                ) : (
+                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${gradientColors} flex items-center justify-center flex-shrink-0`}>
+                    <span className="text-white text-xs font-bold">{initials}</span>
+                  </div>
+                )}
                 <AnimatePresence>
                   {!collapsed && (
                     <motion.div
@@ -209,9 +230,7 @@ export default function Sidebar({
                       className="overflow-hidden whitespace-nowrap flex-1"
                     >
                       <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
-                      <p className="text-[11px] text-slate-500 truncate">
-                        {isAdmin ? 'Super Admin' : user?.jenjang || 'Sekolah'}
-                      </p>
+                      <p className="text-[11px] text-slate-500 truncate">{roleLabel}</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -223,13 +242,6 @@ export default function Sidebar({
                       exit={{ opacity: 0 }}
                       className="flex items-center gap-1 ml-auto"
                     >
-                      <button
-                        onClick={onChangePassword}
-                        className="p-1.5 text-slate-500 hover:text-blue-400 hover:bg-white/[0.05] rounded-lg transition-all duration-200"
-                        title="Ubah Password"
-                      >
-                        <Settings size={14} />
-                      </button>
                       <button
                         onClick={handleLogout}
                         className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-white/[0.05] rounded-lg transition-all duration-200"

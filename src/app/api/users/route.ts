@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { dbFindUser, dbListUsers, dbCreateUser } from '@/lib/firestore-db'
-import bcrypt from 'bcryptjs'
 import { getAuth, requireAdmin } from '@/lib/auth'
 
 // GET /api/users — list all users with search/filter
@@ -47,34 +46,33 @@ export async function POST(request: NextRequest) {
     const adminAuth = requireAdmin(auth)
     if (!adminAuth.authenticated) return adminAuth.response
     const body = await request.json()
-    const { username, password, role, name, jenjang, npsn } = body
+    const { email, name, role, jenjang, npsn } = body
 
-    if (!username || !password || !role || !name) {
+    if (!email || !name || !role) {
       return NextResponse.json(
-        { success: false, message: 'Username, password, role, dan name wajib diisi' },
+        { success: false, message: 'Email, nama, dan role wajib diisi' },
         { status: 400 }
       )
     }
 
-    // Check duplicate username
-    const existing = await dbFindUser({ username })
+    // Check duplicate email
+    const existing = await dbFindUser({ email })
     if (existing) {
       return NextResponse.json(
-        { success: false, message: 'Username sudah digunakan' },
+        { success: false, message: 'Email sudah digunakan' },
         { status: 400 }
       )
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10)
-
     const user = await dbCreateUser({
-      username,
-      password: hashedPassword,
-      role: role.toUpperCase(),
+      email,
+      username: email,
       name,
+      role: role.toUpperCase(),
       jenjang: jenjang || null,
       npsn: npsn || null,
-      mustChangePassword: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     })
 
     return NextResponse.json({ success: true, data: user }, { status: 201 })

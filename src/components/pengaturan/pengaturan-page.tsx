@@ -45,11 +45,11 @@ import { apiFetch } from '@/lib/api-fetch'
 interface UserInfo {
   id: string
   username: string
+  email: string
   role: string
   name: string
   jenjang: string | null
   npsn: string | null
-  mustChangePassword: boolean
   createdAt: string
   updatedAt: string
 }
@@ -196,19 +196,11 @@ function ProfilTab() {
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState('')
-  const [form, setForm] = useState({ name: '', email: '' })
-  const [showChangePw, setShowChangePw] = useState(false)
-  const [currentPw, setCurrentPw] = useState('')
-  const [newPw, setNewPw] = useState('')
-  const [confirmPw, setConfirmPw] = useState('')
-  const [showCurrentPw, setShowCurrentPw] = useState(false)
-  const [showNewPw, setShowNewPw] = useState(false)
-  const [pwLoading, setPwLoading] = useState(false)
-  const [pwMsg, setPwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [form, setForm] = useState({ name: '' })
 
   useEffect(() => {
     if (user) {
-      setForm({ name: user.name, email: '' })
+      setForm({ name: user.name })
     }
   }, [user])
 
@@ -230,48 +222,6 @@ function ProfilTab() {
       }
     } catch { /* ignore */ }
     setLoading(false)
-  }
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setPwMsg(null)
-    if (!currentPw || !newPw || !confirmPw) {
-      setPwMsg({ type: 'error', text: 'Semua field wajib diisi' })
-      return
-    }
-    if (newPw.length < 6) {
-      setPwMsg({ type: 'error', text: 'Password baru minimal 6 karakter' })
-      return
-    }
-    if (newPw !== confirmPw) {
-      setPwMsg({ type: 'error', text: 'Konfirmasi password tidak cocok' })
-      return
-    }
-    setPwLoading(true)
-    try {
-      const res = await apiFetch('/api/auth/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id, currentPassword: currentPw, newPassword: newPw }),
-      })
-      const data = await res.json()
-      if (data.success) {
-        updateUser({ mustChangePassword: false })
-        setPwMsg({ type: 'success', text: 'Password berhasil diubah!' })
-        setCurrentPw('')
-        setNewPw('')
-        setConfirmPw('')
-        setTimeout(() => {
-          setShowChangePw(false)
-          setPwMsg(null)
-        }, 2000)
-      } else {
-        setPwMsg({ type: 'error', text: data.message || 'Gagal mengubah password' })
-      }
-    } catch {
-      setPwMsg({ type: 'error', text: 'Terjadi kesalahan koneksi' })
-    }
-    setPwLoading(false)
   }
 
   const initials = user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'
@@ -301,7 +251,7 @@ function ProfilTab() {
                   {user?.role}
                 </span>
               </div>
-              <p className="text-sm text-slate-500">@{user?.username}</p>
+              <p className="text-sm text-slate-500">{user?.email}</p>
             </div>
             <button
               onClick={() => setEditing(!editing)}
@@ -324,7 +274,7 @@ function ProfilTab() {
           </h3>
           <div className="space-y-4">
             <InfoRow label="Nama Lengkap" value={user?.name || '-'} />
-            <InfoRow label="Username" value={user?.username || '-'} />
+            <InfoRow label="Email" value={user?.email || '-'} />
             <InfoRow label="Role" value={user?.role || '-'} />
             <InfoRow label="Jenjang" value={user?.jenjang || '-'} />
             <InfoRow label="NPSN" value={user?.npsn || '-'} />
@@ -373,90 +323,6 @@ function ProfilTab() {
               </button>
             )}
           </div>
-
-          {/* Change Password Button */}
-          {!showChangePw && (
-            <div className="mt-6 pt-4 border-t border-slate-100">
-              <button
-                onClick={() => setShowChangePw(true)}
-                className="flex items-center gap-2 text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors"
-              >
-                <Key size={14} />
-                Ubah Password
-              </button>
-            </div>
-          )}
-
-          {/* Change Password Form */}
-          <AnimatePresence>
-            {showChangePw && (
-              <motion.form
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                onSubmit={handleChangePassword}
-                className="mt-4 space-y-3 overflow-hidden"
-              >
-                {pwMsg && (
-                  <div className={`flex items-start gap-2 p-3 rounded-xl border ${
-                    pwMsg.type === 'success'
-                      ? 'bg-emerald-50 border-emerald-200'
-                      : 'bg-red-50 border-red-200'
-                  }`}>
-                    {pwMsg.type === 'success'
-                      ? <CheckCircle2 size={14} className="text-emerald-500 mt-0.5 flex-shrink-0" />
-                      : <AlertTriangle size={14} className="text-red-500 mt-0.5 flex-shrink-0" />
-                    }
-                    <span className={`text-xs ${pwMsg.type === 'success' ? 'text-emerald-700' : 'text-red-700'}`}>
-                      {pwMsg.text}
-                    </span>
-                  </div>
-                )}
-                <div className="relative">
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Password Saat Ini</label>
-                  <input
-                    type={showCurrentPw ? 'text' : 'password'}
-                    value={currentPw}
-                    onChange={(e) => setCurrentPw(e.target.value)}
-                    className="w-full px-3.5 py-2.5 pr-10 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                  <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} className="absolute right-3 top-8 text-slate-400 hover:text-slate-600">
-                    {showCurrentPw ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-                <div className="relative">
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Password Baru</label>
-                  <input
-                    type={showNewPw ? 'text' : 'password'}
-                    value={newPw}
-                    onChange={(e) => setNewPw(e.target.value)}
-                    className="w-full px-3.5 py-2.5 pr-10 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                  <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-3 top-8 text-slate-400 hover:text-slate-600">
-                    {showNewPw ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Konfirmasi</label>
-                  <input
-                    type="password"
-                    value={confirmPw}
-                    onChange={(e) => setConfirmPw(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => { setShowChangePw(false); setPwMsg(null) }} className="flex-1 px-3 py-2 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
-                    Batal
-                  </button>
-                  <button type="submit" disabled={pwLoading} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl disabled:opacity-60">
-                    {pwLoading ? <Loader2 size={14} className="animate-spin" /> : <Key size={14} />}
-                    Ubah Password
-                  </button>
-                </div>
-              </motion.form>
-            )}
-          </AnimatePresence>
         </div>
       </div>
     </div>
@@ -471,17 +337,14 @@ function ManajemenUserTab() {
   const [filterRole, setFilterRole] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [showResetModal, setShowResetModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserInfo | null>(null)
   const [modalLoading, setModalLoading] = useState(false)
 
   // Add form
-  const [addForm, setAddForm] = useState({ username: '', password: '', name: '', role: 'SEKOLAH', jenjang: '', npsn: '' })
+  const [addForm, setAddForm] = useState({ email: '', name: '', role: 'SEKOLAH', jenjang: '', npsn: '' })
   // Edit form
   const [editForm, setEditForm] = useState({ name: '', role: '', jenjang: '', npsn: '' })
-  // Reset form
-  const [resetPw, setResetPw] = useState('')
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -510,7 +373,7 @@ function ManajemenUserTab() {
       const data = await res.json()
       if (data.success) {
         setShowAddModal(false)
-        setAddForm({ username: '', password: '', name: '', role: 'SEKOLAH', jenjang: '', npsn: '' })
+        setAddForm({ email: '', name: '', role: 'SEKOLAH', jenjang: '', npsn: '' })
         fetchUsers()
       } else {
         alert(data.message || 'Gagal menambah user')
@@ -540,28 +403,6 @@ function ManajemenUserTab() {
     setModalLoading(false)
   }
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedUser || !resetPw) return
-    setModalLoading(true)
-    try {
-      const res = await apiFetch(`/api/users/${selectedUser.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPassword: resetPw }),
-      })
-      const data = await res.json()
-      if (data.success) {
-        setShowResetModal(false)
-        setResetPw('')
-        fetchUsers()
-      } else {
-        alert(data.message || 'Gagal reset password')
-      }
-    } catch { alert('Terjadi kesalahan') }
-    setModalLoading(false)
-  }
-
   const handleDelete = async () => {
     if (!selectedUser) return
     setModalLoading(true)
@@ -582,12 +423,6 @@ function ManajemenUserTab() {
     setSelectedUser(u)
     setEditForm({ name: u.name, role: u.role, jenjang: u.jenjang || '', npsn: u.npsn || '' })
     setShowEditModal(true)
-  }
-
-  const openReset = (u: UserInfo) => {
-    setSelectedUser(u)
-    setResetPw('')
-    setShowResetModal(true)
   }
 
   const openDelete = (u: UserInfo) => {
@@ -655,10 +490,10 @@ function ManajemenUserTab() {
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-100">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">User</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell">Username</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell">Email</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Role</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Jenjang</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Status</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden lg:table-cell">NPSN</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
@@ -676,12 +511,12 @@ function ManajemenUserTab() {
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-slate-800 truncate">{u.name}</p>
-                          <p className="text-xs text-slate-400 md:hidden">@{u.username}</p>
+                          <p className="text-xs text-slate-400 md:hidden">{u.email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <code className="text-xs bg-slate-100 px-2 py-0.5 rounded-md text-slate-600">{u.username}</code>
+                      <code className="text-xs bg-slate-100 px-2 py-0.5 rounded-md text-slate-600">{u.email}</code>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
@@ -696,23 +531,12 @@ function ManajemenUserTab() {
                       <span className="text-sm text-slate-600">{u.jenjang || '-'}</span>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
-                      <span className={`flex items-center gap-1 text-xs font-medium ${
-                        u.mustChangePassword ? 'text-amber-600' : 'text-emerald-600'
-                      }`}>
-                        {u.mustChangePassword ? (
-                          <><AlertTriangle size={12} /> Perlu Ubah PW</>
-                        ) : (
-                          <><CheckCircle2 size={12} /> Aktif</>
-                        )}
-                      </span>
+                      <span className="text-sm text-slate-600">{u.npsn || '-'}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => openEdit(u)} className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="Edit">
                           <Edit3 size={14} />
-                        </button>
-                        <button onClick={() => openReset(u)} className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-all" title="Reset Password">
-                          <Key size={14} />
                         </button>
                         <button onClick={() => openDelete(u)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Hapus">
                           <Trash2 size={14} />
@@ -737,10 +561,7 @@ function ManajemenUserTab() {
         {showAddModal && (
           <ModalWrapper onClose={() => setShowAddModal(false)} title="Tambah User Baru" icon={Plus}>
             <form onSubmit={handleAdd} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <InputField label="Username *" value={addForm.username} onChange={v => setAddForm({ ...addForm, username: v })} placeholder="contoh: admin2" />
-                <InputField label="Password *" value={addForm.password} onChange={v => setAddForm({ ...addForm, password: v })} placeholder="Minimal 6 karakter" type="password" />
-              </div>
+              <InputField label="Email *" value={addForm.email} onChange={v => setAddForm({ ...addForm, email: v })} placeholder="email@contoh.com" />
               <InputField label="Nama Lengkap *" value={addForm.name} onChange={v => setAddForm({ ...addForm, name: v })} placeholder="Nama user" />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -819,30 +640,6 @@ function ManajemenUserTab() {
                 <button type="submit" disabled={modalLoading} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl shadow-md disabled:opacity-60">
                   {modalLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                   Simpan
-                </button>
-              </div>
-            </form>
-          </ModalWrapper>
-        )}
-      </AnimatePresence>
-
-      {/* ========= RESET PASSWORD MODAL ========= */}
-      <AnimatePresence>
-        {showResetModal && selectedUser && (
-          <ModalWrapper onClose={() => setShowResetModal(false)} title="Reset Password" icon={Key}>
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                <p className="text-xs text-amber-700">
-                  Reset password untuk user <strong>{selectedUser.name}</strong> (@{selectedUser.username}).
-                  User akan diminta mengubah password saat login berikutnya.
-                </p>
-              </div>
-              <InputField label="Password Baru *" value={resetPw} onChange={setResetPw} placeholder="Minimal 6 karakter" type="password" />
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowResetModal(false)} className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Batal</button>
-                <button type="submit" disabled={modalLoading} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl shadow-md disabled:opacity-60">
-                  {modalLoading ? <Loader2 size={16} className="animate-spin" /> : <Key size={16} />}
-                  Reset Password
                 </button>
               </div>
             </form>
@@ -1246,14 +1043,14 @@ function BackupTab() {
               <Building2 size={14} className="text-slate-400" />
               <span className="text-sm text-slate-600">Database Engine</span>
             </div>
-            <span className="text-sm font-semibold text-slate-800">SQLite (Prisma ORM)</span>
+            <span className="text-sm font-semibold text-slate-800">Firebase Firestore</span>
           </div>
           <div className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-xl">
             <div className="flex items-center gap-2">
               <Copy size={14} className="text-slate-400" />
-              <span className="text-sm text-slate-600">Lokasi File</span>
+              <span className="text-sm text-slate-600">Platform</span>
             </div>
-            <code className="text-xs bg-slate-200 px-2 py-0.5 rounded-md text-slate-600">db/custom.db</code>
+            <span className="text-sm font-semibold text-slate-800">Cloud (Online)</span>
           </div>
           <div className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-xl">
             <div className="flex items-center gap-2">
@@ -1261,6 +1058,134 @@ function BackupTab() {
               <span className="text-sm text-slate-600">Terakhir Diperbarui</span>
             </div>
             <span className="text-sm font-semibold text-slate-800">{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Restore Data */}
+      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6">
+        <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <Upload size={16} className="text-amber-500" />
+          Restore Data dari Backup
+        </h3>
+        <p className="text-xs text-slate-500 mb-4">Upload file backup untuk mengembalikan data yang telah diexport sebelumnya.</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-4 border-2 border-dashed border-slate-200 rounded-xl hover:border-amber-300 hover:shadow-md transition-all group">
+            <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center mb-3 group-hover:bg-amber-200 transition-colors">
+              <Upload size={20} className="text-amber-600" />
+            </div>
+            <h4 className="text-sm font-semibold text-slate-800">Restore Sekolah</h4>
+            <p className="text-xs text-slate-400 mt-1 mb-3">Upload file Excel data sekolah</p>
+            <label className="flex items-center justify-center gap-2 w-full px-3 py-2 text-xs font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg cursor-pointer transition-colors">
+              <Upload size={14} />
+              Pilih File
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                disabled={exporting === 'restore-sekolah'}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  setExporting('restore-sekolah')
+                  try {
+                    const XLSX = await import('xlsx')
+                    const data = await file.arrayBuffer()
+                    const wb = XLSX.read(data)
+                    const ws = wb.Sheets[wb.SheetNames[0]]
+                    const json = XLSX.utils.sheet_to_json(ws)
+                    const res = await apiFetch('/api/backup/restore', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ collection: 'sekolah', data: json }),
+                    })
+                    const result = await res.json()
+                    if (result.success) { alert('Restore sekolah berhasil!') } else { alert(result.message || 'Gagal restore') }
+                  } catch { alert('Gagal membaca file') }
+                  setExporting(null)
+                  e.target.value = ''
+                }}
+              />
+            </label>
+          </div>
+
+          <div className="p-4 border-2 border-dashed border-slate-200 rounded-xl hover:border-amber-300 hover:shadow-md transition-all group">
+            <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center mb-3 group-hover:bg-amber-200 transition-colors">
+              <Upload size={20} className="text-amber-600" />
+            </div>
+            <h4 className="text-sm font-semibold text-slate-800">Restore Laporan</h4>
+            <p className="text-xs text-slate-400 mt-1 mb-3">Upload file Excel data laporan</p>
+            <label className="flex items-center justify-center gap-2 w-full px-3 py-2 text-xs font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg cursor-pointer transition-colors">
+              <Upload size={14} />
+              Pilih File
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                disabled={exporting === 'restore-laporan'}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  setExporting('restore-laporan')
+                  try {
+                    const XLSX = await import('xlsx')
+                    const data = await file.arrayBuffer()
+                    const wb = XLSX.read(data)
+                    const ws = wb.Sheets[wb.SheetNames[0]]
+                    const json = XLSX.utils.sheet_to_json(ws)
+                    const res = await apiFetch('/api/backup/restore', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ collection: 'laporan', data: json }),
+                    })
+                    const result = await res.json()
+                    if (result.success) { alert('Restore laporan berhasil!') } else { alert(result.message || 'Gagal restore') }
+                  } catch { alert('Gagal membaca file') }
+                  setExporting(null)
+                  e.target.value = ''
+                }}
+              />
+            </label>
+          </div>
+
+          <div className="p-4 border-2 border-dashed border-slate-200 rounded-xl hover:border-amber-300 hover:shadow-md transition-all group">
+            <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center mb-3 group-hover:bg-amber-200 transition-colors">
+              <Upload size={20} className="text-amber-600" />
+            </div>
+            <h4 className="text-sm font-semibold text-slate-800">Restore Users</h4>
+            <p className="text-xs text-slate-400 mt-1 mb-3">Upload file Excel data users</p>
+            <label className="flex items-center justify-center gap-2 w-full px-3 py-2 text-xs font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg cursor-pointer transition-colors">
+              <Upload size={14} />
+              Pilih File
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                disabled={exporting === 'restore-users'}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  setExporting('restore-users')
+                  try {
+                    const XLSX = await import('xlsx')
+                    const data = await file.arrayBuffer()
+                    const wb = XLSX.read(data)
+                    const ws = wb.Sheets[wb.SheetNames[0]]
+                    const json = XLSX.utils.sheet_to_json(ws)
+                    const res = await apiFetch('/api/backup/restore', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ collection: 'users', data: json }),
+                    })
+                    const result = await res.json()
+                    if (result.success) { alert('Restore users berhasil!') } else { alert(result.message || 'Gagal restore') }
+                  } catch { alert('Gagal membaca file') }
+                  setExporting(null)
+                  e.target.value = ''
+                }}
+              />
+            </label>
           </div>
         </div>
       </div>
@@ -1324,7 +1249,7 @@ function TentangTab() {
               </div>
               <div className="p-3 bg-slate-50 rounded-xl">
                 <p className="text-xs text-slate-400 mb-0.5">Database</p>
-                <p className="text-sm font-bold text-slate-800">SQLite + Prisma</p>
+                <p className="text-sm font-bold text-slate-800">Firebase Firestore</p>
               </div>
             </div>
 
@@ -1360,7 +1285,7 @@ function TentangTab() {
             <div className="pt-4 border-t border-slate-100">
               <h4 className="text-sm font-bold text-slate-800 mb-2">Teknologi</h4>
               <div className="flex flex-wrap gap-2">
-                {['Next.js 16', 'TypeScript', 'Tailwind CSS 4', 'Prisma ORM', 'SQLite', 'Framer Motion', 'Chart.js', 'Zustand', 'shadcn/ui', 'bcryptjs'].map((t) => (
+                {['Next.js 16', 'TypeScript', 'Tailwind CSS 4', 'Firebase Firestore', 'Framer Motion', 'Chart.js', 'Zustand', 'shadcn/ui'].map((t) => (
                   <span key={t} className="px-2.5 py-1 bg-slate-100 rounded-lg text-xs font-medium text-slate-600">
                     {t}
                   </span>

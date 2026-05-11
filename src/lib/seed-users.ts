@@ -1,14 +1,12 @@
 import { getFirebaseApp } from '@/lib/firebase'
 import { getFirestore } from 'firebase-admin/firestore'
-import bcrypt from 'bcryptjs'
 
 /**
  * Replace dummy school users with real data
- * Run: npx ts-node --project tsconfig.json -e "require('./src/lib/seed-users.ts')"
- * Or:  bun run src/lib/seed-users.ts
+ * Run: npm run seed
  *
  * - Hapus semua user dengan role SEKOLAH
- * - Buat ulang dengan data nyata (username = NPSN, password = nisn.la)
+ * - Buat ulang dengan data nyata (email = npsn@sekolah.sirubin, login via Google)
  * - Admin tidak disentuh
  */
 
@@ -61,12 +59,12 @@ const USERS: { name: string; npsn: string; jenjang: string }[] = [
 ]
 
 async function seedUsers() {
-  console.log('🔥 Initializing Firebase...')
+  console.log('Initializing Firebase...')
   getFirebaseApp()
   const db = getFirestore()
 
   // 1. Hapus semua user SEKOLAH
-  console.log('🗑️  Menghapus semua user SEKOLAH lama...')
+  console.log('Menghapus semua user SEKOLAH lama...')
   const snapshot = await db.collection('users').where('role', '==', 'SEKOLAH').get()
   if (!snapshot.empty) {
     const batch = db.batch()
@@ -78,27 +76,26 @@ async function seedUsers() {
   }
 
   // 2. Buat user baru
-  console.log('📦 Membuat user baru...')
-  const password = await bcrypt.hash('nisn.la', 10)
+  console.log('Membuat user baru...')
   const now = new Date()
 
   for (const u of USERS) {
+    const email = `${u.npsn}@sekolah.sirubin`
     await db.collection('users').add({
+      email,
       username: u.npsn,
-      password,
       role: 'SEKOLAH',
       name: u.name,
       jenjang: u.jenjang,
       npsn: u.npsn,
-      mustChangePassword: true,
       createdAt: now,
       updatedAt: now,
     })
-    console.log(`  ✅ ${u.name} (${u.npsn})`)
+    console.log(`  ${u.name} (${email})`)
   }
 
-  console.log(`\n🎉 Selesai! ${USERS.length} user berhasil dibuat.`)
-  console.log('   Password default: nisn.la')
+  console.log(`\nSelesai! ${USERS.length} user berhasil dibuat.`)
+  console.log('   Login menggunakan Google dengan email terdaftar.')
   process.exit(0)
 }
 

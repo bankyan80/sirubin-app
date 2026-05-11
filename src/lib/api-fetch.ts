@@ -2,7 +2,7 @@ import { useAuthStore } from '@/lib/auth-store'
 
 /**
  * Authenticated fetch wrapper.
- * Automatically adds X-User-Id, X-User-Role, X-User-Npsn, X-User-Name headers
+ * Automatically adds X-User-Id, X-User-Role, X-User-Npsn, X-User-Name, X-User-Email headers
  * from the Zustand auth store to every API request.
  */
 export function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
@@ -16,6 +16,7 @@ export function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
     headers.set('X-User-Role', user.role)
     headers.set('X-User-Npsn', user.npsn || '')
     headers.set('X-User-Name', user.name || '')
+    headers.set('X-User-Email', user.email || '')
   }
 
   // Set Content-Type for JSON bodies if not already set

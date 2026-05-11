@@ -1,22 +1,22 @@
 'use client'
 
-import { Search, Bell, Menu, LogIn, LogOut, Settings, ChevronDown, User } from 'lucide-react'
+import { Search, Bell, Menu, LogIn, LogOut, ChevronDown, User } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/lib/auth-store'
 
 interface TopbarProps {
   onMobileMenuToggle: () => void
-  onChangePassword: () => void
   onLoginClick: () => void
 }
 
-export default function Topbar({ onMobileMenuToggle, onChangePassword, onLoginClick }: TopbarProps) {
+export default function Topbar({ onMobileMenuToggle, onLoginClick }: TopbarProps) {
   const { user, isAuthenticated, logout } = useAuthStore()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const isAdmin = user?.role === 'ADMIN'
+  const isPengguna = user?.role === 'PENGGUNA'
 
   const initials = user?.name
     ? user.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
@@ -24,7 +24,11 @@ export default function Topbar({ onMobileMenuToggle, onChangePassword, onLoginCl
 
   const gradientColors = isAdmin
     ? 'from-blue-500 to-violet-600'
+    : isPengguna
+    ? 'from-slate-500 to-slate-600'
     : 'from-emerald-500 to-teal-600'
+
+  const roleLabel = isAdmin ? 'Super Admin' : isPengguna ? 'Pengguna' : (user?.jenjang || 'Sekolah')
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -77,14 +81,20 @@ export default function Topbar({ onMobileMenuToggle, onChangePassword, onLoginCl
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="flex items-center gap-3 pl-1 pr-2 py-1.5 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
               >
-                <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${gradientColors} flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow duration-300`}>
-                  <span className="text-white text-xs font-bold">{initials}</span>
-                </div>
+                {user?.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.name}
+                    className="w-9 h-9 rounded-full flex-shrink-0 border-2 border-white shadow-md"
+                  />
+                ) : (
+                  <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${gradientColors} flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow duration-300`}>
+                    <span className="text-white text-xs font-bold">{initials}</span>
+                  </div>
+                )}
                 <div className="hidden sm:block text-left">
                   <p className="text-sm font-semibold text-slate-700 leading-tight">{user?.name || 'User'}</p>
-                  <p className="text-[11px] text-slate-400 leading-tight">
-                    {isAdmin ? 'Super Admin' : (user?.jenjang ? `${user.jenjang} - ${user?.npsn}` : 'Sekolah')}
-                  </p>
+                  <p className="text-[11px] text-slate-400 leading-tight">{roleLabel}</p>
                 </div>
                 <ChevronDown size={14} className={`hidden sm:block text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -101,20 +111,9 @@ export default function Topbar({ onMobileMenuToggle, onChangePassword, onLoginCl
                   >
                     <div className={`px-4 py-3 bg-gradient-to-r ${gradientColors}`}>
                       <p className="text-sm font-semibold text-white">{user?.name}</p>
-                      <p className="text-[11px] text-white/70">{user?.username}</p>
+                      <p className="text-[11px] text-white/70">{user?.email}</p>
                     </div>
                     <div className="p-1.5">
-                      <button
-                        onClick={() => {
-                          setDropdownOpen(false)
-                          onChangePassword()
-                        }}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-50 rounded-xl transition-colors"
-                      >
-                        <Settings size={16} className="text-slate-400" />
-                        Ubah Password
-                      </button>
-                      <div className="my-1 border-t border-slate-100" />
                       <button
                         onClick={() => {
                           setDropdownOpen(false)

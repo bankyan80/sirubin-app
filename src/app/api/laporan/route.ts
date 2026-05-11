@@ -20,11 +20,6 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
 
-    // SEKOLAH role: force filter by their own NPSN
-    if (auth.user.role === 'SEKOLAH') {
-      if (auth.user.npsn) schoolId = auth.user.npsn
-    }
-
     const { data, total } = await dbListLaporan({ search, jenjang, bulan, tahun, status, schoolId })
 
     // Enrich with bulan names
@@ -74,15 +69,6 @@ export async function POST(request: NextRequest) {
 
     if (!npsn || !bulan || !tahun) {
       return NextResponse.json({ success: false, message: 'Field wajib belum lengkap' }, { status: 400 })
-    }
-
-    // SEKOLAH role: verify the schoolId/npsn matches their own
-    if (user.role === 'SEKOLAH') { if (user.npsn && npsn !== user.npsn) {
-        return NextResponse.json(
-          { success: false, message: 'Akses ditolak. Anda hanya dapat mengirim laporan untuk sekolah Anda sendiri.' },
-          { status: 403 }
-        )
-      }
     }
 
     // Calculate percentage from checklist (6 items)

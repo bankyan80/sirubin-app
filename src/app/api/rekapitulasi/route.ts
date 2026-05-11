@@ -34,10 +34,6 @@ export async function GET(request: NextRequest) {
     let schools = await dbListAllSchools()
     if (jenjang) schools = schools.filter((s) => s.jenjang === jenjang)
     if (kecamatan) schools = schools.filter((s) => s.kecamatan === kecamatan)
-    if (user?.role === "SEKOLAH") {
-        schools = schools.filter((s) => s.npsn === user.npsn)
-    }
-
     // 2. Get all laporan for this year matching filters
     let allLaporan = await dbListAllLaporan({ tahun: parseInt(tahun) })
     if (bulan) allLaporan = allLaporan.filter((l) => l.bulan === parseInt(bulan))

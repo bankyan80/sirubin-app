@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { dbFindUser, dbUpdateUser, dbDeleteUser, dbCountUsers } from '@/lib/firestore-db'
-import bcrypt from 'bcryptjs'
-import { getAuth, requireAdmin } from '@/lib/auth'
+import { getAuth } from '@/lib/auth'
 
 // GET /api/users/[id]
 export async function GET(
@@ -11,8 +10,6 @@ export async function GET(
   try {
     const auth = await getAuth(request)
     if (!auth.authenticated) return auth.response
-    const adminAuth = requireAdmin(auth)
-    if (!adminAuth.authenticated) return adminAuth.response
     const { id } = await params
     const user = await dbFindUser({ id })
 
@@ -27,7 +24,7 @@ export async function GET(
   }
 }
 
-// PUT /api/users/[id] — update user (admin: full access, sekolah: own name only)
+// PUT /api/users/[id] — update user
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -36,52 +33,20 @@ export async function PUT(
     const auth = await getAuth(request)
     if (!auth.authenticated) return auth.response
     const { id } = await params
-    const isSelf = auth.user.userId === id
-
-    // Non-admin users can only update their own name
-    if (!isSelf) {
-      const adminAuth = requireAdmin(auth)
-      if (!adminAuth.authenticated) return adminAuth.response
-    }
 
     const body = await request.json()
-    const { username, role, name, jenjang, npsn, mustChangePassword, newPassword } = body
+    const { name, role, jenjang, npsn } = body
 
     const existing = await dbFindUser({ id })
     if (!existing) {
       return NextResponse.json({ success: false, message: 'User tidak ditemukan' }, { status: 404 })
     }
 
-    // Self-update: only allow changing name
-    if (isSelf && auth.user.role !== 'ADMIN') {
-      const updateData: Record<string, unknown> = {}
-      if (name) updateData.name = name
-      const user = await dbUpdateUser(id, updateData)
-      return NextResponse.json({ success: true, data: user })
-    }
-
-    // Admin: full update
-    // Check username uniqueness if changed
-    if (username && username !== existing.username) {
-      const duplicate = await dbFindUser({ username })
-      if (duplicate) {
-        return NextResponse.json({ success: false, message: 'Username sudah digunakan' }, { status: 400 })
-      }
-    }
-
     const updateData: Record<string, unknown> = {}
-    if (username) updateData.username = username
     if (role) updateData.role = role.toUpperCase()
     if (name) updateData.name = name
     if (jenjang !== undefined) updateData.jenjang = jenjang || null
     if (npsn !== undefined) updateData.npsn = npsn || null
-    if (mustChangePassword !== undefined) updateData.mustChangePassword = mustChangePassword
-
-    // If admin wants to reset password
-    if (newPassword) {
-      updateData.password = await bcrypt.hash(newPassword, 10)
-      updateData.mustChangePassword = true
-    }
 
     const user = await dbUpdateUser(id, updateData)
 
@@ -100,8 +65,6 @@ export async function DELETE(
   try {
     const auth = await getAuth(request)
     if (!auth.authenticated) return auth.response
-    const adminAuth = requireAdmin(auth)
-    if (!adminAuth.authenticated) return adminAuth.response
     const { id } = await params
     const existing = await dbFindUser({ id })
     if (!existing) {

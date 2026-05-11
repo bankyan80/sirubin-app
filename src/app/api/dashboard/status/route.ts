@@ -30,12 +30,6 @@ export async function GET(request: NextRequest) {
 
     // Build school filter - show all schools for public dashboard
     const where: Record<string, unknown> = {}
-    if (auth && auth.user.role === 'SEKOLAH' && auth.user.npsn) {
-      // SEKOLAH: filter by their own jenjang, not just their school
-      if (auth.user.jenjang) {
-        where.jenjang = auth.user.jenjang
-      }
-    }
     if (jenjang) where.jenjang = jenjang
     if (kecamatan) where.kecamatan = kecamatan
 

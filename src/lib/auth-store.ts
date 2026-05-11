@@ -1,14 +1,13 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 
 export interface AuthUser {
   id: string
-  username: string
-  role: string
+  email: string
   name: string
+  photoURL?: string
+  role: string
   jenjang: string | null
   npsn: string | null
-  mustChangePassword: boolean
 }
 
 interface AuthState {
@@ -22,22 +21,16 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-      login: (user) => set({ user, isAuthenticated: true, isLoading: false }),
-      logout: () => set({ user: null, isAuthenticated: false, isLoading: false }),
-      updateUser: (data) =>
-        set((state) => ({
-          user: state.user ? { ...state.user, ...data } : null,
-        })),
-      setLoading: (loading) => set({ isLoading: loading }),
-    }),
-    {
-      name: 'sirubin-auth',
-      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
-    }
-  )
+  (set) => ({
+    user: null,
+    isAuthenticated: false,
+    isLoading: true,
+    login: (user) => set({ user, isAuthenticated: true, isLoading: false }),
+    logout: () => set({ user: null, isAuthenticated: false, isLoading: false }),
+    updateUser: (data) =>
+      set((state) => ({
+        user: state.user ? { ...state.user, ...data } : null,
+      })),
+    setLoading: (loading) => set({ isLoading: loading }),
+  })
 )

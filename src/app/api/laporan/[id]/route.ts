@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { dbFindLaporan, dbUpdateLaporan, dbDeleteLaporan } from '@/lib/firestore-db'
-import { getAuth, requireAdmin } from '@/lib/auth'
+import { getAuth } from '@/lib/auth'
 
 const BULAN = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
 
@@ -16,16 +16,6 @@ export async function GET(
     const laporan = await dbFindLaporan({ id })
     if (!laporan) {
       return NextResponse.json({ success: false, message: 'Laporan tidak ditemukan' }, { status: 404 })
-    }
-
-    // SEKOLAH role: verify the laporan belongs to their school
-    if (auth.user.role === 'SEKOLAH') {
-      if (auth.user.npsn && laporan.npsn !== auth.user.npsn) {
-        return NextResponse.json(
-          { success: false, message: 'Akses ditolak. Laporan ini bukan milik sekolah Anda.' },
-          { status: 403 }
-        )
-      }
     }
 
     return NextResponse.json({
@@ -52,23 +42,6 @@ export async function PUT(
     const existing = await dbFindLaporan({ id })
     if (!existing) {
       return NextResponse.json({ success: false, message: 'Laporan tidak ditemukan' }, { status: 404 })
-    }
-
-    // SEKOLAH role: verify the laporan belongs to their school
-    if (auth.user.role === 'SEKOLAH') {
-      if (auth.user.npsn && existing.npsn !== auth.user.npsn) {
-        return NextResponse.json(
-          { success: false, message: 'Akses ditolak. Laporan ini bukan milik sekolah Anda.' },
-          { status: 403 }
-        )
-      }
-      // Sekolah cannot set adminFeedback
-      delete body.adminFeedback
-    }
-
-    // Only admin can set feedback
-    if (auth.user.role !== 'ADMIN') {
-      delete body.adminFeedback
     }
 
     // Recalculate percentage from checklist
@@ -103,10 +76,6 @@ export async function DELETE(
   try {
     const auth = await getAuth(request)
     if (!auth.authenticated) return auth.response
-
-    // Only admin can delete laporan
-    const adminCheck = requireAdmin(auth)
-    if (!adminCheck.authenticated) return adminCheck.response
 
     const { id } = await params
     const existing = await dbFindLaporan({ id })

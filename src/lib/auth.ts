@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getAuth as getFirebaseAuth } from 'firebase-admin/auth'
+import { getFirebaseApp } from '@/lib/firebase'
 import { dbFindUser } from '@/lib/firestore-db'
 
 export interface AuthContext {
@@ -6,6 +8,7 @@ export interface AuthContext {
   role: string
   npsn: string | null
   name: string
+  email: string
   jenjang?: string | null
 }
 
@@ -23,7 +26,7 @@ type AuthCheck = AuthResult | AuthError
 
 /**
  * Extract and validate auth from request headers.
- * Client should send: X-User-Id, X-User-Role, X-User-Npsn, X-User-Name
+ * Client should send: X-User-Id, X-User-Role, X-User-Npsn, X-User-Name, X-User-Email
  * Validates against Firestore database to prevent spoofing.
  */
 export async function getAuth(request: NextRequest): Promise<AuthCheck> {
@@ -31,6 +34,7 @@ export async function getAuth(request: NextRequest): Promise<AuthCheck> {
   const role = request.headers.get('x-user-role')
   const npsn = request.headers.get('x-user-npsn')
   const name = request.headers.get('x-user-name')
+  const email = request.headers.get('x-user-email')
 
   if (!userId || !role) {
     return {
@@ -73,6 +77,7 @@ export async function getAuth(request: NextRequest): Promise<AuthCheck> {
       role: user.role,
       npsn: user.npsn || null,
       name: user.name,
+      email: user.email || '',
       jenjang: user.jenjang || null,
     },
   }
@@ -102,4 +107,17 @@ export function getSchoolNpsn(auth: AuthResult): string {
     throw new Error('Akun sekolah belum terhubung ke data sekolah.')
   }
   return auth.user.npsn || ''
+}
+
+/**
+ * Verify a Google ID token using Firebase Admin SDK.
+ */
+export async function verifyGoogleToken(idToken: string) {
+  try {
+    const app = getFirebaseApp()
+    const decoded = await getFirebaseAuth(app).verifyIdToken(idToken)
+    return decoded
+  } catch {
+    return null
+  }
 }
