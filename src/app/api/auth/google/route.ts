@@ -118,8 +118,9 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Google login error:', error)
+    const msg = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { success: false, message: 'Terjadi kesalahan server' },
+      { success: false, message: msg },
       { status: 500 }
     )
   }
