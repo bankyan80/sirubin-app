@@ -1,35 +1,38 @@
-import { initializeApp, cert, App } from 'firebase-admin/app'
+import { initializeApp, cert, getApps, App } from 'firebase-admin/app'
 import { getFirestore, Firestore } from 'firebase-admin/firestore'
-import { readFileSync, existsSync } from 'fs'
-import { resolve } from 'path'
 
 let app: App
 let db: Firestore
 
+function loadServiceAccount(): Record<string, unknown> | null {
+  const envVal = process.env.FIREBASE_SERVICE_ACCOUNT
+  if (envVal) {
+    try {
+      return JSON.parse(envVal)
+    } catch {
+      console.error('[Firebase] Gagal parse FIREBASE_SERVICE_ACCOUNT env var')
+      return null
+    }
+  }
+  return null
+}
+
 export function getFirebaseApp(): App {
   if (!app) {
-    let initialized = false
-    const paths = [resolve(process.cwd(), 'serviceAccountKey.json')]
-    for (const p of paths) {
-      if (existsSync(p)) {
-        const raw = readFileSync(p, 'utf-8')
-        app = initializeApp({ credential: cert(JSON.parse(raw.trim())) })
-        console.log('[Firebase] OK using:', p)
-        initialized = true
-        break
-      }
+    const existingApps = getApps()
+    if (existingApps.length > 0) {
+      app = existingApps[0]
+      return app
     }
-    if (!initialized) {
-      const envVal = process.env.FIREBASE_SERVICE_ACCOUNT
-      if (envVal) {
-        app = initializeApp({ credential: cert(JSON.parse(envVal)) })
-        console.log('[Firebase] OK using env var')
-        initialized = true
-      }
+
+    const sa = loadServiceAccount()
+    if (sa) {
+      app = initializeApp({ credential: cert(sa) })
+      console.log('[Firebase] OK using env var')
+      return app
     }
-    if (!initialized) {
-      throw new Error('[Firebase] serviceAccountKey.json tidak ditemukan!')
-    }
+
+    throw new Error('[Firebase] FIREBASE_SERVICE_ACCOUNT tidak ditemukan! Set di environment variables.')
   }
   return app
 }
