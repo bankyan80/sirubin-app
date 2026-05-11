@@ -46,4 +46,10 @@ next-env.d.ts
 
 # Firebase secrets
 firebase-service-account.json
-.aider*
+serviceAccountKey.json
+
+# leftover submodule artifacts
+/sirubin-app/
+
+# AI assistant artifacts
+.aider.*
